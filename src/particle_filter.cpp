@@ -1,8 +1,8 @@
 /**
  * particle_filter.cpp
  *
- * Created on: Dec 12, 2016
- * Author: Tiffany Huang
+ * Created on: Dec 8, 2021
+ * Author: Mwesigwa Musisi-Nkambwe (Based of Tiffany Huang Original)
  */
 
 #include "particle_filter.h"
@@ -30,7 +30,29 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
    * NOTE: Consult particle_filter.h for more information about this method 
    *   (and others in this file).
    */
-  num_particles = 0;  // TODO: Set the number of particles
+  num_particles = 1000;  // TODO: Set the number of particles
+  
+  std::default_random_engine gen;
+
+  //Create normal distributions for x, y and theta
+  normal_distribution<double> dist_x(x, std[0]);
+  normal_distribution<double> dist_y(y, std[1]);
+  normal_distribution<double> dist_theta(theta, std[2]);
+  
+  for (int i = 0; i < num_particles; ++i) {
+    double sample_x, sample_y, sample_theta;
+    
+    // Sample from these normal distributions
+    // sample_x = dist_x(gen);
+    // where "gen" is the random engine initialized earlier.
+    sample_x = dist_x(gen);
+    sample_y = dist_y(gen);
+    sample_theta = dist_theta(gen);
+     
+    // Print your samples to the terminal.
+    std::cout << "Sample " << i + 1 << " " << sample_x << " " << sample_y << " " 
+              << sample_theta << std::endl;
+  }
 
 }
 
