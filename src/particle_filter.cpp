@@ -2,7 +2,7 @@
  * particle_filter.cpp
  *
  * Created on: Dec 8, 2021
- * Author: Mwesigwa Musisi-Nkambwe (Based of Tiffany Huang Original)
+ * Author: Mwesigwa Musisi-Nkambwe (Based of Tiffany Huang Original, Dec 12, 2016)
  */
 
 #include "particle_filter.h"
