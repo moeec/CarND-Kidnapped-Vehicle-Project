@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+
+
 #include "helper_functions.h"
 
 using std::string;
@@ -126,8 +128,9 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
     // Get current observation
     LandmarkObs observe = observations[i];
 
-    // initialize minimum distance to maximum possible
-    double minimum_distance;
+    // initialize minimum distance to a largest possible double value for later comparison
+    double minimum_distance = std::numeric_limits<double>::max();
+    std::cout<<minimum_distance;
 
     // initialize landmark identifier from map placeholder associated with the observation
     int map_identifier;
@@ -140,6 +143,7 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
       double current_distance = dist(observe.x, observe.y, prediction.x, prediction.y);
 
       // Look for predicted landmark nearest the current observed landmark
+      // Here I am starting with the largest possible double number them decreasing each iteration 
       if (current_distance < minimum_distance) 
       {
         minimum_distance = current_distance;
