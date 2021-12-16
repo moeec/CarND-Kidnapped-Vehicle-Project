@@ -127,10 +127,10 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
     LandmarkObs observe = observations[i];
 
     // initialize minimum distance to maximum possible
-    double minimum_distance = std::numeric_limits<double>::max();
+    double minimum_distance;
 
     // initialize landmark identifier from map placeholder associated with the observation
-    int map_identifier = -1;
+    int map_identifier;
     
     for (unsigned int j = 0; j < predicted.size(); j++) {
       // Get current prediction
@@ -140,7 +140,8 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
       double current_distance = dist(observe.x, observe.y, prediction.x, prediction.y);
 
       // Look for predicted landmark nearest the current observed landmark
-      if (current_distance < minimum_distance) {
+      if (current_distance < minimum_distance) 
+      {
         minimum_distance = current_distance;
         map_identifier = prediction.id;
       }
@@ -169,36 +170,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
   
-  // Update for each particle
-  for (int i = 0; i < num_particles; i++) 
-    
-  {
-
-    // get x & y coordinates for the particle
-    double p_x = particles[i].x;
-    double p_y = particles[i].y;
-    double p_theta = particles[i].theta;
-
-   // vector used to hold map's closest landmark locations within range of sensed particle
-    vector<LandmarkObs> predictions;
-
-    // each map landmark added to vector
-    for (unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) {
-
-      // get identifiers and x,y coordinates
-      float lm_x = map_landmarks.landmark_list[j].x_f;
-      float lm_y = map_landmarks.landmark_list[j].y_f;
-      int lm_id = map_landmarks.landmark_list[j].id_i;
       
-      // only consider landmarks within sensor range of the particle (rather than using the "dist" method considering a circular 
-      // region around the particle, this considers a rectangular region but is computationally faster)
-      if (fabs(lm_x - p_x) <= sensor_range && fabs(lm_y - p_y) <= sensor_range) {
-
-        // add prediction to vector
-        predictions.push_back(LandmarkObs{ lm_id, lm_x, lm_y });
-      }
-      
-    }
+}
 
  
 
