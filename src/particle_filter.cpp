@@ -22,6 +22,7 @@
 
 using std::string;
 using std::vector;
+using std::normal_distribution;
 
 std::default_random_engine gen;
 
@@ -159,7 +160,8 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
 
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
                                    const vector<LandmarkObs> &observations, 
-                                   const Map &map_landmarks) {
+                                   const Map &map_landmarks) 
+{
   /**
    * TODO: Update the weights of each particle using a mult-variate Gaussian 
    *   distribution. You can read more about this distribution here: 
@@ -174,10 +176,53 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
   
+  
+  // Set standard deviations for x, y, and theta
+  double std_x = 2;
+  double std_y = 2;
+  double std_theta = 0.05;
+  
+  // To keep track of each particle
+   for (int i = 0; i < num_particles; i++) 
+   {
+     // x and y particle coordinates
+     double x_part = particles[i].x;
+     double y_part = particles[i].y;
+     double theta_part = particles[i].theta;
+     
+     // a vector is created to hold map locations of landmarks predicted within sensor range of the particle
+     vector<LandmarkObs> pred;
+     
+    //list of observations transformed from vehicle coordinates to maps coordinates 
+    vector<LandmarkObs> transformed_observations;
+    vector<LandmarkObs> predictions;
+    for (unsigned int j = 0; j < observations.size(); j++) 
+    {
+      double t_x = cos(theta_part)*observations[j].x - sin(theta_part)*observations[j].y + x_part;
+      double t_y = sin(theta_part)*observations[j].x + cos(theta_part)*observations[j].y + y_part;
+      transformed_observations.push_back(LandmarkObs{ observations[j].id, t_x, t_y });
+    }
+     
+    // for every map landmark
+    for (unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) 
+    {
+      // get id and x,y coordinates
+      float landmark_x = map_landmarks.landmark_list[j].x_f;
+      float landmark_y = map_landmarks.landmark_list[j].y_f;
+      int landmark_id = map_landmarks.landmark_list[j].id_i;
       
-}
 
- 
+      // create a normal (Gaussian) distribution for x, y and theta
+      normal_distribution<double> dist_x(x_part, std_x);
+      normal_distribution<double> dist_y(y_part, std_y);
+      normal_distribution<double> dist_theta(theta_part, std_theta);
+      
+      // add prediction to vector
+      predictions.push_back(LandmarkObs{landmark_id, landmark_x, landmark_y });  
+    }    
+  }
+}
+    
 
 void ParticleFilter::resample() {
   /**
