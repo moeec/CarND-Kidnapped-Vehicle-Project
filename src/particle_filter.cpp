@@ -176,7 +176,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
   
-  
   // Set standard deviations for x, y, and theta
   double std_x = 2;
   double std_y = 2;
@@ -190,20 +189,14 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
      double y_part = particles[i].y;
      double theta_part = particles[i].theta;
      
-     // a vector is created to hold map locations of landmarks predicted within sensor range of the particle
+     // a vector is created to hold predicted map locations within range of the particle
      vector<LandmarkObs> pred;
      
     //list of observations transformed from vehicle coordinates to maps coordinates 
     vector<LandmarkObs> transformed_observations;
     vector<LandmarkObs> predictions;
-    for (unsigned int j = 0; j < observations.size(); j++) 
-    {
-      double t_x = cos(theta_part)*observations[j].x - sin(theta_part)*observations[j].y + x_part;
-      double t_y = sin(theta_part)*observations[j].x + cos(theta_part)*observations[j].y + y_part;
-      transformed_observations.push_back(LandmarkObs{ observations[j].id, t_x, t_y });
-    }
      
-    // for every map landmark
+     // for every map landmark
     for (unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) 
     {
       // get id and x,y coordinates
@@ -213,14 +206,58 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
       
 
       // create a normal (Gaussian) distribution for x, y and theta
-      normal_distribution<double> dist_x(x_part, std_x);
-      normal_distribution<double> dist_y(y_part, std_y);
-      normal_distribution<double> dist_theta(theta_part, std_theta);
+      //normal_distribution<double> dist_x(x_part, std_x);
+      //normal_distribution<double> dist_y(y_part, std_y);
+      //normal_distribution<double> dist_theta(theta_part, std_theta);
       
-      // add prediction to vector
-      predictions.push_back(LandmarkObs{landmark_id, landmark_x, landmark_y });  
+      // ensuring each map landmark is inside snesor range      
+      if (fabs(landmark_x - x_part) <= sensor_range && fabs(landmark_y - y_part) <= sensor_range) 
+      {
+         // add prediction to vector
+        predictions.push_back(LandmarkObs{landmark_id, landmark_x, landmark_y }); 
+      
+      }  
+      
     }    
-  }
+     
+     for (unsigned int j = 0; j < transformed_observations.size(); j++) 
+     {
+      
+      // 
+      double obs_x, obs_y, pred_x, pred_y;
+      obs_x = transformed_observations[j].x;
+      obs_y = transformed_observations[j].y;
+
+      int associated_prediction = transformed_observations[j].id;
+
+      // get x,y coordinates prediction associated with the current observation
+      for (unsigned int k = 0; k < predictions.size(); k++) 
+      {
+        if (predictions[k].id == associated_prediction) {
+          pred_x = predictions[k].x;
+          pred_y = predictions[k].y;
+        }
+      }
+
+      // calculate weight for this observation with multivariate Gaussian
+      double sig_x = std_landmark[0];
+      double sig_y = std_landmark[1];
+      // calculate normalization term
+      double gauss_norm, mu_x, mu_y;
+      mu_x = 2;
+      mu_y = 1;
+      gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
+      // calculate exponent
+      double exponent;
+      exponent = (pow(obs_x - mu_x, 2) / (2 * pow(sig_x, 2))) + (pow(obs_y - mu_y, 2) / (2 * pow(sig_y, 2)));
+      // product of this obersvation weight with total observations weight
+      double weight;
+      weight = gauss_norm * exp(-exponent);
+      particles[i].weight *= weight;
+       
+     
+     
+   }
 }
     
 
@@ -232,7 +269,11 @@ void ParticleFilter::resample() {
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
   
-  vector<Particle> new_particles;
+  
+  
+  
+  
+  //vector<Particle> new_particles;
 
 }
 
