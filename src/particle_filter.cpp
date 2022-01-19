@@ -2,7 +2,7 @@
  * particle_filter.cpp
  *
  * Created on: Dec 12, 2016
- * Author: Tiffany Huang, additional edits made by Mwesigwa Musisi-Nkambwe for completion of assignement (Dec 2021)
+ * Author: Tiffany Huang, additional edits made by Mwesigwa Musisi-Nkambwe for completion of assignment (Dec 2021)
  */
 
 #include "particle_filter.h"
@@ -186,11 +186,9 @@ Particle weight would be normalized according to gaussian normalization later to
    
    
    */
-  
    // variables used as placeholders for observation
    double obs_x, obs_y, pred_x, pred_y;
   
-
   
   // To keep track of each particle
    for (int i = 0; i < num_particles; i++) 
@@ -210,15 +208,15 @@ Particle weight would be normalized according to gaussian normalization later to
     vector<LandmarkObs> predictions;
      
      
-     // for every map landmark
+     // for every map landmark for every particle above
     for (unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) 
     {
-      // get id and x,y coordinates
+      // get id and x,y coordinates for each landmark
       landmark_x = map_landmarks.landmark_list[j].x_f;
       landmark_y = map_landmarks.landmark_list[j].y_f;
       landmark_id = map_landmarks.landmark_list[j].id_i;
       
-      // ensuring each map landmark is inside sensor range      
+      // ENSURE map landmarks are inside sensor range      
       if (fabs(landmark_x - x_part) <= sensor_range && fabs(landmark_y - y_part) <= sensor_range) 
       {
         // add prediction to vector
@@ -227,19 +225,14 @@ Particle weight would be normalized according to gaussian normalization later to
       }  
       
      }    
-     
+     // TRANSFORM each observation marker from the vehicle's coordinates to the map's coordinates
      vector<LandmarkObs> transformed_observations;
      for (unsigned int k = 0; k < transformed_observations.size(); k++) 
      {
-       
-       // Landmarks Transformed from vehicle coordinates to map coordinates system
-      
-       // create a copy of transformed observations from Vehicle to map coordinates
        obs_x = cos(theta_part)*observations[k].x - sin(theta_part)*observations[k].y + x_part;
        obs_y = sin(theta_part)*observations[k].x + cos(theta_part)*observations[k].y + y_part;
        
-       transformed_observations.push_back(LandmarkObs{observations[k].id, obs_x, obs_y });
-       
+       transformed_observations.push_back(LandmarkObs{observations[k].id, obs_x, obs_y }); 
      }
      
      dataAssociation(predictions, transformed_observations);
@@ -249,19 +242,20 @@ Particle weight would be normalized according to gaussian normalization later to
 
 
       // get x,y coordinates prediction associated with the current observation
+      double obs_final_x, obs_final_y; 
       for (unsigned int l = 0; l < predictions.size(); l++) 
       {  
        
-        double obs_final_x, obs_final_y; 
+        
       // Create variables for observation and associated prediction coordinates
         obs_final_x = transformed_observations[l].x;
         obs_final_y = transformed_observations[l].y;
         
         
-        int associated_prediction = transformed_observations[l].id;
+        int associated_prediction_id = transformed_observations[l].id;
         
         
-        if (predictions[l].id == associated_prediction) 
+        if (predictions[l].id == associated_prediction_id) 
         {
           pred_x = predictions[l].x;
           pred_y = predictions[l].y;
@@ -270,21 +264,21 @@ Particle weight would be normalized according to gaussian normalization later to
        
 
       // calculate weight for this observation with multivariate Gaussian
-      double sig_x = std_landmark[0];
-      double sig_y = std_landmark[1];
+      double sigma_x = std_landmark[0];
+      double sigma_y = std_landmark[1];
      
       // calculate normalization term
       double gauss_norm;
-      gauss_norm = 1 / (2 * M_PI * sig_x * sig_y);
+      gauss_norm = 1 / (2 * M_PI * sigma_x * sigma_y);
      
       // calculate exponent
       double exponent;
-      exponent = (pow(pred_x - obs_final_x, 2) / (2 * pow(sig_x, 2))) + (pow(pred_y - obs_final_y, 2) / (2 * pow(sig_y, 2)));
+      exponent = (pow(pred_x - obs_final_x, 2) / (2 * pow(sigma_x, 2))) + (pow(pred_y - obs_final_y, 2) / (2 * pow(sigma_y, 2)));
      
       // product of this observation weight with total observations weight
       double weight;
       weight = gauss_norm * exp(-exponent);
-      particles[i].weight *= weight;  
+      particles[i].weight = particles[i].weight*weight;  
      }
    }
 
@@ -298,14 +292,27 @@ void ParticleFilter::resample()
    *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
    */
   
+  std::default_random_engine gen;
+  std::discrete_distribution<int> distribution (weights.begin(), weights.end());
+  vector<Particle> resampled_particles;
   
   
+  // create new weights variable with current weights
+  vector<double> weights;
   
+  for (unsigned int i = 0; i < num_particles; i++) 
+  {
+    weights.push_back(particles[i].weight);
+  }
   
-  //vector<Particle> new_particles;
-
+  for (unsigned int i=0; i < particles.size(); i++) 
+  {
+    int n = distribution(gen);
+    resampled_particles.push_back(particles[n]);
+  }  
+  particles = resampled_particles;
 }
-
+  
 void ParticleFilter::SetAssociations(Particle& particle, 
                                      const vector<int>& associations, 
                                      const vector<double>& sense_x, 
@@ -320,7 +327,8 @@ void ParticleFilter::SetAssociations(Particle& particle,
   particle.sense_y = sense_y;
 }
 
-string ParticleFilter::getAssociations(Particle best) {
+string ParticleFilter::getAssociations(Particle best) 
+{
   vector<int> v = best.associations;
   std::stringstream ss;
   copy(v.begin(), v.end(), std::ostream_iterator<int>(ss, " "));
@@ -329,7 +337,8 @@ string ParticleFilter::getAssociations(Particle best) {
   return s;
 }
 
-string ParticleFilter::getSenseCoord(Particle best, string coord) {
+string ParticleFilter::getSenseCoord(Particle best, string coord) 
+{
   vector<double> v;
 
   if (coord == "X") {
