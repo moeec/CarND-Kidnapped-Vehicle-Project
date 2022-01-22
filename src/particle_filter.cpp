@@ -17,7 +17,6 @@
 #include <vector>
 
 
-
 #include "helper_functions.h"
 
 using std::string;
@@ -37,7 +36,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[])
    * NOTE: Consult particle_filter.h for more information about this method 
    *   (and others in this file).
    */
-  num_particles = 100;  // TODO: Set the number of particles
+  num_particles = 1000;  // TODO: Set the number of particles
   
 
 
@@ -151,14 +150,8 @@ void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted,
         map_identifier = prediction.id;
       }
     }
-
-    // set the observation's id to the nearest predicted landmark's id
-    observations[i].id = map_identifier;
-  } 
-  
+  }
 }
-
-
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
                                    const vector<LandmarkObs> &observations, 
                                    const Map &map_landmarks) 
