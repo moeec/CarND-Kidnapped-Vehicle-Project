@@ -43,9 +43,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[])
 
   // Create sensor noise normal distribution for x, y and theta using std::normal_distribution (mean, standard deviation)
   
-  std::normal_distribution<double> N_x_init(0, std[0]);
-  std::normal_distribution<double> N_y_init(0, std[1]);
-  std::normal_distribution<double> N_theta_init(0, std[2]);
+  std::normal_distribution<double> N_x(0, std[0]);
+  std::normal_distribution<double> N_y(0, std[1]);
+  std::normal_distribution<double> N_theta(0, std[2]);
   
   for (int i = 0; i < num_particles; ++i) 
   {  
@@ -60,9 +60,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[])
     part.weight = 1.0;
     
     // Adding noise
-    part.x += N_x_init(gen);
-    part.y += N_y_init(gen);
-    part.theta += N_theta_init(gen);
+    part.x += N_x(gen);
+    part.y += N_y(gen);
+    part.theta += N_theta(gen);
     
     // Add a new element at the end of the vector, after its current last element. 
     particles.push_back(part);
@@ -215,6 +215,7 @@ Particle weight would be normalized according to gaussian normalization later to
       landmark_x = map_landmarks.landmark_list[j].x_f;
       landmark_y = map_landmarks.landmark_list[j].y_f;
       landmark_id = map_landmarks.landmark_list[j].id_i;
+      std::cout << landmark_x;
       
       // ENSURE map landmarks are inside sensor range      
       if (fabs(landmark_x - x_part) <= sensor_range && fabs(landmark_y - y_part) <= sensor_range) 
