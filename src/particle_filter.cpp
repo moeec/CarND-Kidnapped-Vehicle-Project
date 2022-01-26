@@ -36,7 +36,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[])
    * NOTE: Consult particle_filter.h for more information about this method 
    *   (and others in this file).
    */
-  num_particles = 1000;  // TODO: Set the number of particles
+  num_particles = 200;  // TODO: Set the number of particles
   
 
 
@@ -177,90 +177,84 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 In the code above, you seem to be at step 2 but there has to be a condition before you push data to predicted vector about whether those map landmarks are inside sensor range.
 
 Particle weight would be normalized according to gaussian normalization later towards step 4.
-   
-   
-   */
+      */
+  // used to calculate weight for observation with multivariate Gaussian
+  double sigma_x = std_landmark[0];
+  double sigma_y = std_landmark[1];
+  
+  // used to calculate normalization term
+  double gauss_norm = 1 / (2 * M_PI * sigma_x * sigma_y);
+ 
 // To keep track of each particle
   for(int i = 0; i < num_particles; i++)
-    {	
-     	double x_part = particles[i].x;
- 		double y_part  = particles[i].y;
- 		double theta_part = particles[i].theta;
-
-// To keep track of each landmark
-   		float landmark_x;          
-    	float landmark_y;
-    	int landmark_id;
+  {
+    Particle& p = particles[i];
 
 // a vector created to hold predicted map locations within sensor range of the particle
- 		vector<LandmarkObs> predictions;
+   	vector<LandmarkObs> predictions;
 
 //Each map landmark for loop
-        for(unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) 
-		{
-
+  	for(unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) 
+	{
 // get id and x,y coordinates for each landmark
-			landmark_x = map_landmarks.landmark_list[j].x_f;
-			landmark_y = map_landmarks.landmark_list[j].y_f;
-			landmark_id = map_landmarks.landmark_list[j].id_i;
+		float landmark_x = map_landmarks.landmark_list[j].x_f;
+		float landmark_y = map_landmarks.landmark_list[j].y_f;
+		int landmark_id = map_landmarks.landmark_list[j].id_i;
 
 //Only consider landmarks within sensor range of the particle (rather than using the "dist" method considering a circular region around the particle, this considers a rectangular region but is computationally faster)
-			if(fabs(landmark_x - x_part) <= sensor_range && fabs(landmark_y - y_part) <= sensor_range)
-            {
-           		predictions.push_back(LandmarkObs{ landmark_id, landmark_x, landmark_y });
-			}
+		if(fabs(landmark_x - p.x) <= sensor_range && fabs(landmark_y - p.y) <= sensor_range)
+        {
+       		predictions.push_back(LandmarkObs{ landmark_id, landmark_x, landmark_y });
 		}
+	}
 
 // TRANSFORM each observation marker from the vehicle's coordinates to the map's coordinates
- 		vector<LandmarkObs> transformed_observations;
- 		for(unsigned int j = 0; j < observations.size(); j++) 
- 		{
-  			double t_x = cos(theta_part)*observations[j].x - sin(theta_part)*observations[j].y + x_part;
-    		double t_y = sin(theta_part)*observations[j].x + cos(theta_part)*observations[j].y + y_part;
- 			transformed_observations.push_back(LandmarkObs{ observations[j].id, t_x, t_y });
- 		}
+ 	vector<LandmarkObs> transformed_observations;
+ 	for(unsigned int j = 0; j < observations.size(); j++) 
+ 	{
+  		double t_x = observations[j].x * cos(p.theta) - observations[j].y * sin(p.theta) + p.x;
+    	double t_y = observations[j].x * sin(p.theta) + observations[j].y * cos(p.theta) + p.y;
+ 		transformed_observations.push_back(LandmarkObs{ observations[j].id, t_x, t_y });
+ 	}
 
 // Nearest Neighbor Data Association applied 
- 		dataAssociation(predictions, transformed_observations);
+ 	dataAssociation(predictions, transformed_observations);
 
 // reinitializing weight
- 		particles[i].weight = 1.0;
+ 	particles[i].weight = 1.0;
+    
+    vector<int> association;
+    vector<double> sense_x;
+    vector<double> sense_y; 
+    
 // take in transformed observations one by one
- 	for(unsigned int j = 0; j < transformed_observations.size(); j++) 
+ 	double o_x, o_y, mu_x, mu_y;
+    for(unsigned int j = 0; j < transformed_observations.size(); j++) 
  	{
-   		double o_x, o_y, pr_x, pr_y;
     	o_x = transformed_observations[j].x;
     	o_y = transformed_observations[j].y;
-  		int associated_prediction = transformed_observations[j].id;
-
 // take in x,y coordinates of the prediction associated with current observation
    		for(unsigned int k = 0; k < predictions.size(); k++) 
     	{
- 		 	if(predictions[k].id == associated_prediction) 
+ 		 	if(predictions[k].id == transformed_observations[j].id) 
   			{
- 				pr_x = predictions[k].x;
-  				pr_y = predictions[k].y;
+ 				mu_x = predictions[k].x;
+  				mu_y = predictions[k].y;
   			}
- 		}
-
-// calculate weight for this observation with multivariate Gaussian
-  		double sigma_x = std_landmark[0];
-   		double sigma_y = std_landmark[1];
-
-// calculate normalization term
-      	double gauss_norm;
-      	gauss_norm = 1 / (2 * M_PI * sigma_x * sigma_y);
-     
+ 		}     
 // calculate exponent
-      	double exponent;
-      	exponent = (pow(pr_x - o_x, 2) / (2 * pow(sigma_x, 2))) + (pow(pr_y - o_y, 2) / (2 * pow(sigma_y, 2)));
+      	double exponent = (0.5*pow( (o_x - mu_x)/sigma_x, 2.0 )+0.5*pow( (o_y - mu_y)/sigma_y, 2.0 ));
      
- // product of this observation weight with total observations weight
-      	double weight;
-      	weight = gauss_norm * exp(-exponent);
-      	particles[i].weight = particles[i].weight*weight;  
- 		}
+// product of this observation weight with total observations weight
+      	double p_weight = gauss_norm * exp(-exponent);
+      	particles[i].weight = particles[i].weight*p_weight;
+      
+// Append particle associations
+      association.push_back(transformed_observations[j].id);
+      sense_x.push_back(o_x);
+      sense_y.push_back(o_y);                                                                      
  	}
+ }
 }
 void ParticleFilter::resample() 
 {
