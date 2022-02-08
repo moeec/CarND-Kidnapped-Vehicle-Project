@@ -173,14 +173,18 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
   {
     Particle p = particles[i];
     // TRANSFORM each observation marker from the vehicle's coordinates to the map's coordinates
-    vector<LandmarkObs> transformed_observations; 
-    double t_x,t_y;
+   vector<LandmarkObs> transformed_observations; 
+
 
     for(unsigned int j = 0; j < observations.size(); j++) 
     {
-      t_x = observations[j].x*cos(p.theta) - observations[j].y*sin(p.theta) + p.x;
-      t_y = observations[j].y*cos(p.theta)+ observations[j].x*sin(p.theta) + p.y;
-      transformed_observations.push_back(LandmarkObs{ observations[j].id, t_x, t_y });
+      LandmarkObs oberservations[j];
+      LandmarkObs nLandmark;
+      
+      
+      nLandmark.x = observations[j].x*cos(p.theta) - observations[j].y*sin(p.theta) + p.x;
+      nLandmark.y = observations[j].y*cos(p.theta)+ observations[j].x*sin(p.theta) + p.y;
+      transformed_observations.push_back(nLandmark);
     }
     // Each new map landmark within sensor's range is put in a list of landmarks. 
 
@@ -188,12 +192,13 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
     for (unsigned int j = 0; j < map_landmarks.landmark_list.size(); j++) 
     {
-      float landmark_x = map_landmarks.landmark_list[j].x_f;
-      float landmark_y = map_landmarks.landmark_list[j].y_f;
-	  int landmark_id = map_landmarks.landmark_list[j].id_i;
-      if(fabs(t_x - p.x) <= sensor_range && fabs(t_y - p.y) <= sensor_range) 
+      LandmarkObs nLandmark;
+      nLandmark.x = map_landmarks.landmark_list[j].x_f;
+      nLandmark.y = map_landmarks.landmark_list[j].y_f;
+	  nLandmark.id = map_landmarks.landmark_list[j].id_i;
+      if(dist(p.x, p.y, nLandmark.x, nLandmark.y) <= sensor_range) 
 		{
-			predictions.push_back(LandmarkObs{ landmark_id, landmark_x, landmark_y });
+			predictions.push_back(nLandmark);
 		}
     }    
     // Nearest Neighbor Data Association applied 
@@ -202,29 +207,30 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     particles[i].weight = 1.0;     // reset the particle's weight to 1 and recalculate
 
   
-    LandmarkObs Land_A, obs;
+  
     for (unsigned int j = 0; j < transformed_observations.size(); j++) 
 	{
+      LandmarkObs Land_A, obs;
       obs = transformed_observations[j];
       // Pair Landmark with Associated id
       
-      for (unsigned int k = 0; k < predictions.size(); k++) 
-		{
-        if (predictions[k].id == obs.id)
+      for (unsigned int k = 0; k < predictions.size(); k++)
         {
+        if (predictions[k].id == obs.id)
+          {
           Land_A = predictions[k];
 		  break;
-		}
-	}
+	      }
+	    }
       // calculate the weigh/probability of this particle using the multivariate Gaussian
-	double mu_x = std_landmark[0];
-	double mu_y = std_landmark[1];
-    double exponent = pow((obs.x - Land_A.x), 2) / (2.0*mu_x*mu_x)  +  pow((obs.y - Land_A.y), 2) / (2.0*mu_y*mu_y);   
+		double mu_x = std_landmark[0];
+		double mu_y = std_landmark[1];
+    	double exponent = pow((obs.x - Land_A.x), 2) / (2.0*mu_x*mu_x)  +  pow((obs.y - Land_A.y), 2) / (2.0*mu_y*mu_y);   
 
-    particles[i].weight *= exp(-exponent) / (2.0 * M_PI * mu_x * mu_y);
-    }
+    	particles[i].weight *= exp(-exponent) / (2.0 * M_PI * mu_x * mu_y);
+    	}
  	weights[i] = particles[i].weight;
-}  
+	}  
 }
 void ParticleFilter::resample() 
 {
