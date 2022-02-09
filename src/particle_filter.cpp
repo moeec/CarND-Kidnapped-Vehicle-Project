@@ -91,16 +91,17 @@ void ParticleFilter::prediction(double delta_t, double std_pos[],
   {
 
     // calculate new state
-    if (fabs(yaw_rate) > 0.00001) 
+    if (fabs(yaw_rate) < 0.00001) 
+    {
+      particles[i].x += velocity * delta_t * cos(particles[i].theta);
+      particles[i].y += velocity * delta_t * sin(particles[i].theta);
+
+    } 
+    else 
     {
       particles[i].x += (velocity / yaw_rate) * (sin(particles[i].theta + yaw_rate*delta_t) - sin(particles[i].theta));
       particles[i].y += (velocity / yaw_rate) * (cos(particles[i].theta) - cos(particles[i].theta + yaw_rate*delta_t));
       particles[i].theta += yaw_rate * delta_t;
-    } 
-    else 
-    {
-      particles[i].x += velocity * delta_t * cos(particles[i].theta);
-      particles[i].y += velocity * delta_t * sin(particles[i].theta);
     }
     // Add noise
     particles[i].x += N_x(gen);
@@ -178,9 +179,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
     for(unsigned int j = 0; j < observations.size(); j++) 
     {
-      LandmarkObs oberservations[j];
-      LandmarkObs nLandmark;
       
+      LandmarkObs nLandmark;  
       
       nLandmark.x = observations[j].x*cos(p.theta) - observations[j].y*sin(p.theta) + p.x;
       nLandmark.y = observations[j].y*cos(p.theta)+ observations[j].x*sin(p.theta) + p.y;
@@ -203,10 +203,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
     }    
     // Nearest Neighbor Data Association applied 
     dataAssociation(predictions, transformed_observations);
-  // reinitializing weight
+    // reinitializing weight
     particles[i].weight = 1.0;     // reset the particle's weight to 1 and recalculate
-
-  
   
     for (unsigned int j = 0; j < transformed_observations.size(); j++) 
 	{
